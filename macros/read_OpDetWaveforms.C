@@ -10,6 +10,7 @@
 #include "TH1F.h"
 #include "TFile.h"
 #include "TStyle.h"
+#include "TCanvas.h"
 
 //"art" includes (canvas, and gallery)
 #include "canvas/Utilities/InputTag.h"
@@ -29,6 +30,8 @@ void read_OpDetWaveforms(std::string filename) {
   std::vector<std::string> filenames { filename };
   art::InputTag opdet_tag {"opdaq"};
   
+  TH1F *hist_vec;
+
   for (gallery::Event ev(filenames) ; !ev.atEnd(); ev.next()) {
 
     //if(ev.eventEntry()!=ev_to_process) continue;
@@ -45,21 +48,33 @@ void read_OpDetWaveforms(std::string filename) {
 
     for(size_t i_w=0; i_w<opdet_vec.size(); ++i_w){
       auto const& wvfrm = opdet_vec[i_w];
-      std::cout << "Channel " << wvfrm.ChannelNumber() << ", time=" << wvfrm.TimeStamp() << ": size=" << wvfrm.size() << std::endl;
+      std::cout << "Channel " << wvfrm.ChannelNumber() 
+		<< ", time=" << wvfrm.TimeStamp() 
+		<< ": size=" << wvfrm.size() << std::endl;
+
+      TString hname; hname.Form("h_wvfm_ch_%u",wvfrm.ChannelNumber());
+      TString htitle; 
+      htitle.Form("Waveform for Event %u, Channel %u",
+		  ev.eventAuxiliary().event(),
+		  wvfrm.ChannelNumber());
+
+      if(wvfrm.ChannelNumber()==0){
+	hist_vec = new TH1F(hname,htitle,wvfrm.size(),0,wvfrm.size());
+	for(size_t i_t=0; i_t<wvfrm.size(); ++i_t)
+	  hist_vec->SetBinContent(i_t+1,wvfrm[i_t]);
+      }
     }
+
+    break;
 
   } //end loop over events!
 
-  /*
+  
   //now, we're in a macro: we can just draw the histogram!
   //Let's make a TCanvas to draw our two histograms side-by-side
-  TCanvas* canvas = new TCanvas("canvas","OpFlash Info!",1500,1200);
-  canvas->Divide(3,12); //divides the canvas in two!
-
-  for(size_t i_w=0; i_w<36; ++i_w){
-    canvas->cd(i_w+1);
-    hist_vec[i_w]->Draw();
-  }
+  TCanvas* canvas = new TCanvas("canvas","OpWaveforms",1500,1200);
+  //canvas->Divide(3,12); //divides the canvas in two!
+  hist_vec->Draw();
   //and ... done!
-  */
+  
 }
