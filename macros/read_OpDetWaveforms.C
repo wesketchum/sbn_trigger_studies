@@ -22,7 +22,7 @@
 //"larsoft" object includes
 #include "lardataobj/RawData/OpDetWaveform.h"
 
-void read_OpDetWaveforms(std::string filename) {
+void read_OpDetWaveforms(std::string filename,unsigned int ch_num=0) {
 
   gStyle->SetOptStat(0);
 
@@ -30,7 +30,7 @@ void read_OpDetWaveforms(std::string filename) {
   std::vector<std::string> filenames { filename };
   art::InputTag opdet_tag {"opdaq"};
   
-  TH1F *hist_vec;
+  TH1F *hist_vec = new TH1F("hist_vec","WAVEFORM",1100,0,1100);
 
   for (gallery::Event ev(filenames) ; !ev.atEnd(); ev.next()) {
 
@@ -53,13 +53,12 @@ void read_OpDetWaveforms(std::string filename) {
 		<< ": size=" << wvfrm.size() << std::endl;
 
       TString hname; hname.Form("h_wvfm_ch_%u",wvfrm.ChannelNumber());
-      TString htitle; 
+      TString htitle;
       htitle.Form("Waveform for Event %u, Channel %u",
 		  ev.eventAuxiliary().event(),
 		  wvfrm.ChannelNumber());
 
-      if(wvfrm.ChannelNumber()==0){
-	hist_vec = new TH1F(hname,htitle,wvfrm.size(),0,wvfrm.size());
+      if(wvfrm.ChannelNumber()==ch_num){
 	for(size_t i_t=0; i_t<wvfrm.size(); ++i_t)
 	  hist_vec->SetBinContent(i_t+1,wvfrm[i_t]);
       }
@@ -72,7 +71,7 @@ void read_OpDetWaveforms(std::string filename) {
   
   //now, we're in a macro: we can just draw the histogram!
   //Let's make a TCanvas to draw our two histograms side-by-side
-  TCanvas* canvas = new TCanvas("canvas","OpWaveforms",1500,1200);
+  TCanvas* canvas = new TCanvas("canvas","OpWaveforms");
   //canvas->Divide(3,12); //divides the canvas in two!
   hist_vec->Draw();
   //and ... done!
