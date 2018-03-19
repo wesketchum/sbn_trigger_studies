@@ -22,7 +22,11 @@
 //"larsoft" object includes
 #include "lardataobj/RawData/OpDetWaveform.h"
 
-void read_OpDetWaveforms(std::string filename,unsigned int ch_num=0) {
+const raw::ADC_Count_t BASELINE=8000;
+const size_t           WAVEFORM_SIZE=1100;
+const int              PULSE_POLARITY=-1;
+
+void read_OpDetWaveforms(std::string filename, raw::Channel_t ch_num=0) {
 
   gStyle->SetOptStat(0);
 
@@ -30,7 +34,8 @@ void read_OpDetWaveforms(std::string filename,unsigned int ch_num=0) {
   std::vector<std::string> filenames { filename };
   art::InputTag opdet_tag {"opdaq"};
   
-  TH1F *hist_vec = new TH1F("hist_vec","WAVEFORM",1100,0,1100);
+  TH1F *hwvfm_raw = new TH1F("hwvfm_raw","RAW WAVEFORM",WAVEFORM_SIZE,0,WAVEFORM_SIZE);
+  TH1F *hwvfm_sub = new TH1F("hwvfm_sub","BASELINE SUBTRACTED WAVEFORM",WAVEFORM_SIZE,0,WAVEFORM_SIZE);
 
   for (gallery::Event ev(filenames) ; !ev.atEnd(); ev.next()) {
 
@@ -52,15 +57,11 @@ void read_OpDetWaveforms(std::string filename,unsigned int ch_num=0) {
 		<< ", time=" << wvfrm.TimeStamp() 
 		<< ": size=" << wvfrm.size() << std::endl;
 
-      TString hname; hname.Form("h_wvfm_ch_%u",wvfrm.ChannelNumber());
-      TString htitle;
-      htitle.Form("Waveform for Event %u, Channel %u",
-		  ev.eventAuxiliary().event(),
-		  wvfrm.ChannelNumber());
-
       if(wvfrm.ChannelNumber()==ch_num){
-	for(size_t i_t=0; i_t<wvfrm.size(); ++i_t)
-	  hist_vec->SetBinContent(i_t+1,wvfrm[i_t]);
+	for(size_t i_t=0; i_t<wvfrm.size(); ++i_t){
+	  hwvfm_raw->SetBinContent(i_t+1,wvfrm[i_t]);
+	  hwvfm_sub->SetBinContent(i_t+1,PULSE_POLARITY*(wvfrm[i_t]-BASELINE));
+	}
       }
     }
 
@@ -72,8 +73,12 @@ void read_OpDetWaveforms(std::string filename,unsigned int ch_num=0) {
   //now, we're in a macro: we can just draw the histogram!
   //Let's make a TCanvas to draw our two histograms side-by-side
   TCanvas* canvas = new TCanvas("canvas","OpWaveforms");
+  canvas->Divide(1,2);
   //canvas->Divide(3,12); //divides the canvas in two!
-  hist_vec->Draw();
+  canvas->cd(1);
+  hwvfm_raw->Draw();
+  canvas->cd(2);
+  hwvfm_sub->Draw();
   //and ... done!
   
 }
